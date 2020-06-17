@@ -71,6 +71,11 @@ bkcore.hexgl.HUD = function(opts)
 
 	this.step = 0;
 	this.maxStep = 2;
+
+	this.delay = "";
+	this.packetloss = "";
+	this.myL4N = opts.L4N;
+
 };
 
 bkcore.hexgl.HUD.prototype.resize = function(w, h)
@@ -104,7 +109,22 @@ bkcore.hexgl.HUD.prototype.updateLap = function(current, total)
 	this.lap = current + this.lapSeparator + total;
 }
 
-bkcore.hexgl.HUD.prototype.resetLap = function()
+bkcore.hexgl.HUD.prototype.updateDelay = function (delayparam)
+{
+	var s = this.myL4N.getString("delay", "Delay:");
+
+	var d = delayparam.get();
+
+	this.delay = s + " " + d.value + " ms" + " (" + this.myL4N.getString(d.key,"")+")";
+}
+
+bkcore.hexgl.HUD.prototype.updatePacketLoss = function (p)
+{
+	var s = this.myL4N.getString("packetloss","Packet Loss:");
+	this.packetloss = s + " " + Math.round(p*100.0) + "%";
+}
+
+bkcore.hexgl.HUD.prototype.resetLap = function ()
 {
 	this.lap = "";
 }
@@ -205,12 +225,35 @@ bkcore.hexgl.HUD.prototype.update = function(speed, speedRatio, shield, shieldRa
 		}
 
 		// LAPS
+		var baseWidth = 0;
+		var myh = 0;
 		if(this.lap != "")
 		{
 			this.ctx.font = (SCREEN_WIDTH/this.timeFontRatio)+"px "+this.font;
 		    this.ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-		    this.ctx.fillText(this.lap, SCREEN_WIDTH-SCREEN_WIDTH/this.lapMarginRatio, SCREEN_WIDTH/this.timeMarginRatio);
+			this.ctx.fillText(this.lap, SCREEN_WIDTH - SCREEN_WIDTH / this.lapMarginRatio, SCREEN_WIDTH / this.timeMarginRatio);
+			let measurement = this.ctx.measureText(this.lap);
+
+			baseWidth = measurement.width;
+			
+			
+			myh = measurement.actualBoundingBoxAscent;
+			if (!myh) //not al browsers support actualBoundingBoxAscent
+				myh = 100;
 		}
+
+		//delay
+		this.ctx.font = (SCREEN_WIDTH / this.timeFontRatio) + "px " + this.font;
+		this.ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+		myw = (this.ctx.measureText(this.delay).width-baseWidth)/2;
+		this.ctx.fillText(this.delay, SCREEN_WIDTH - SCREEN_WIDTH / this.lapMarginRatio-myw, SCREEN_WIDTH / this.timeMarginRatio+myh+10);
+
+		//packet losss
+		this.ctx.font = (SCREEN_WIDTH / this.timeFontRatio) + "px " + this.font;
+		this.ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+		myw = (this.ctx.measureText(this.packetloss).width - baseWidth)/2;
+		this.ctx.fillText(this.packetloss, SCREEN_WIDTH - SCREEN_WIDTH / this.lapMarginRatio -myw, SCREEN_WIDTH / this.timeMarginRatio + 2*myh+20);
+
 
 	    // MESSAGE
 	    var my = SCREEN_HH-SCREEN_WIDTH/this.messageYRatio;

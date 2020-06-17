@@ -1,6 +1,10 @@
 HexGL
 =========
 
+This is a fork by [Barkhausen Institut](barkhauseninstitut.org), introducing delay and packet error rate into the controller.
+
+---
+
 Source code of [HexGL](http://hexgl.bkcore.com), the futuristic HTML5 racing game by [Thibaut Despoulain](http://bkcore.com)
 
 ## Branches

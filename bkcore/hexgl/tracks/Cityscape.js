@@ -1,4 +1,4 @@
-/*
+ /*
  * HexGL
  * @author Thibaut 'BKcore' Despoulain <http://bkcore.com>
  * @license This work is licensed under the Creative Commons Attribution-NonCommercial 3.0 Unported License.
@@ -37,14 +37,11 @@ bkcore.hexgl.tracks.Cityscape = {
 	analyser: null,
 	pixelRatio: 2048.0 / 6000.0,
 
-	load: function(opts, quality)
+	load: function(opts, quality, mobile)
 	{
 		this.lib = new bkcore.threejs.Loader(opts);
 
-		// desktop + quality low
-		// OR
-		// mobile + quality low or mid
-		if(quality < 2) // LOW
+		if((quality < 1 && !mobile) || quality < 2) // LOW
 		{
 			this.lib.load({
 				textures: {
@@ -83,39 +80,9 @@ bkcore.hexgl.tracks.Cityscape = {
 					'hud.bg'							: "textures/hud/hud-bg.png",
 					'hud.speed'							: "textures/hud/hud-fg-speed.png",
 					'hud.shield'						: "textures/hud/hud-fg-shield.png"
-				},
-				sounds: {
-					bg: {
-						src: 'audio/bg.ogg',
-						loop: true,
-						usePanner: false
-					},
-					crash: {
-						src: 'audio/crash.ogg',
-						loop: false,
-						usePanner: true
-					},
-					destroyed: {
-						src: 'audio/destroyed.ogg',
-						loop: false,
-						usePanner: false
-					},
-					boost: {
-						src: 'audio/boost.ogg',
-						loop: false,
-						usePanner: true
-					},
-					wind: {
-						src: 'audio/wind.ogg',
-						loop: true,
-						usePanner: true
-					}
 				}
 			});
 		}
-		// desktop + quality mid or high
-		// OR
-		// mobile + quality high
 		else // HIGH
 		{console.log('HIGH');
 			this.lib.load({
@@ -167,39 +134,14 @@ bkcore.hexgl.tracks.Cityscape = {
 					'hud.bg'							: "textures.full/hud/hud-bg.png",
 					'hud.speed'							: "textures.full/hud/hud-fg-speed.png",
 					'hud.shield'						: "textures.full/hud/hud-fg-shield.png"
-				},
-				sounds: {
-					bg: {
-						src: 'audio/bg.ogg',
-						loop: true
-					},
-					crash: {
-						src: 'audio/crash.ogg',
-						loop: false
-					},
-					destroyed: {
-						src: 'audio/destroyed.ogg',
-						loop: false
-					},
-					boost: {
-						src: 'audio/boost.ogg',
-						loop: false
-					},
-					wind: {
-						src: 'audio/wind.ogg',
-						loop: true
-					}
 				}
 			});
 		}
 	},
 
-	buildMaterials: function(quality)
+	buildMaterials: function(quality, mobile)
 	{
-		// desktop + quality low
-		// OR
-		// mobile + quality low or mid
-		if(quality < 2) // LOW
+		if((quality < 1 && !mobile) || quality < 2) // LOW
 		{
 			this.materials.track = new THREE.MeshBasicMaterial({
 				map: this.lib.get("textures", "track.cityscape.diffuse"),
@@ -245,9 +187,6 @@ bkcore.hexgl.tracks.Cityscape = {
 				transparent: false
 			});
 		}
-		// desktop + quality mid or high
-		// OR
-		// mobile + quality high
 		else // HIGH
 		{
 			this.materials.track = bkcore.Utils.createNormalMaterial({
@@ -331,7 +270,7 @@ bkcore.hexgl.tracks.Cityscape = {
 		}
 	},
 
-	buildScenes: function(ctx, quality)
+	buildScenes: function(ctx, quality, mobile)
 	{
 		// IMPORTANT
 		this.analyser = this.lib.get("analysers", "track.cityscape.collision");
@@ -374,8 +313,7 @@ bkcore.hexgl.tracks.Cityscape = {
 		sun.position.set( -4000, 1200, 1800 );
 		sun.lookAt(new THREE.Vector3());
 
-		// desktop + quality mid or high
-		if(quality > 2)
+		if(quality > 0 && !mobile)
 		{
 			sun.castShadow = true;
 			sun.shadowCameraNear = 50;
@@ -410,19 +348,11 @@ bkcore.hexgl.tracks.Cityscape = {
 
 		var boosterLight = new THREE.PointLight(0x00a2ff, 4.0, 60);
 		boosterLight.position.set(0, 0.665, -4);
-		
-		// desktop + quality low, mid or high
-		// OR
-		// mobile + quality mid or high
-		// NB booster is now enabled on desktop + low quality,
-		// when it wasn't before; this is because this booster setting
-		// is the only difference between mobile + mid quality
-		// and desktop + low quality, so I merged them for convenience
 		if(quality > 0)
 			ship.add(boosterLight);
 
 		// SHIP CONTROLS
-		var shipControls = new bkcore.hexgl.ShipControls(ctx);
+		var shipControls = new bkcore.hexgl.ShipControls(ctx,ctx.hud);
 		shipControls.collisionMap = this.lib.get("analysers", "track.cityscape.collision");
 		shipControls.collisionPixelRatio = 2048.0 / 6000.0;
 		shipControls.collisionDetection = true;
@@ -443,9 +373,7 @@ bkcore.hexgl.tracks.Cityscape = {
 			boosterLight: boosterLight,
 			useParticles: false
 		};
-		
-		// desktop + quality mid or high
-		if(quality > 2)
+		if(quality > 0 && !mobile)
 		{
 			fxParams.textureCloud = this.lib.get("textures", "cloud");
 			fxParams.textureSpark = this.lib.get("textures", "spark");

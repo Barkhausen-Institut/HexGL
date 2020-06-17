@@ -18,31 +18,27 @@ bkcore.hexgl.HexGL = function(opts)
 	this.document = opts.document || document;
 
 	this.a = window.location.href;
+	this.L4N = opts.L4N;
 
+	this.mobile = opts.mobile == undefined ? false : opts.mobile;
 	this.active = true;
 	this.displayHUD = opts.hud == undefined ? true : opts.hud;
 	this.width = opts.width == undefined ? window.innerWidth : opts.width;
 	this.height = opts.height == undefined ? window.innerHeight : opts.height;
-	
+
+	this.quality = opts.quality == undefined ? 2 : opts.quality;
 	this.difficulty = opts.difficulty == undefined ? 0 : opts.difficulty;
 	this.player = opts.player == undefined ? "Anonym" : opts.player;
+
+	this.half = opts.half == undefined ? false : opts.half;
 
 	this.track = bkcore.hexgl.tracks[ opts.track == undefined ? 'Cityscape' : opts.track ];
 
 	this.mode = opts.mode == undefined ? 'timeattack' : opts.mode;
 
 	this.controlType = opts.controlType == undefined ? 1 : opts.controlType;
-	
-	// 0 == low, 1 == mid, 2 == high, 3 == very high
-	// the old platform+quality combinations map to these new quality values
-	// as follows:
-	// mobile + low quality => 0 (LOW)
-	// mobile + mid quality OR desktop + low quality => 1 (MID)
-	// mobile + high quality => 2 (HIGH)
-	// desktop + mid or high quality => 3 (VERY HIGH)
-	this.quality = opts.quality == undefined ? 3 : opts.quality;
 
-	if(this.quality === 0)
+	if(this.half)
 	{
 		this.width /= 2;
 		this.height /=2;
@@ -112,12 +108,6 @@ bkcore.hexgl.HexGL.prototype.reset = function()
 {
 	this.manager.get('game').objects.lowFPS = 0;
 	this.gameplay.start();
-
-	bkcore.Audio.stop('bg');
-	bkcore.Audio.stop('wind');
-	bkcore.Audio.volume('wind', 0.35);
-	bkcore.Audio.play('bg');
-	bkcore.Audio.play('wind');
 }
 
 bkcore.hexgl.HexGL.prototype.restart = function()
@@ -140,17 +130,17 @@ bkcore.hexgl.HexGL.prototype.update = function()
 bkcore.hexgl.HexGL.prototype.init = function()
 {
 	this.initHUD();
-	
-	this.track.buildMaterials(this.quality);
 
-	this.track.buildScenes(this, this.quality);
+	this.track.buildMaterials(this.quality, this.mobile);
+
+	this.track.buildScenes(this, this.quality, this.mobile);
 
 	this.initGameComposer();
 }
 
 bkcore.hexgl.HexGL.prototype.load = function(opts)
 {
-	this.track.load(opts, this.quality);
+	this.track.load(opts, this.quality, this.mobile);
 }
 
 bkcore.hexgl.HexGL.prototype.initGameplay = function()
@@ -172,10 +162,6 @@ bkcore.hexgl.HexGL.prototype.initGameplay = function()
 	});
 
 	this.gameplay.start();
-
-	bkcore.Audio.play('bg');
-	bkcore.Audio.play('wind');
-	bkcore.Audio.volume('wind', 0.35);
 }
 
 bkcore.hexgl.HexGL.prototype.displayScore = function(f, l)
@@ -287,8 +273,8 @@ bkcore.hexgl.HexGL.prototype.initRenderer = function()
 		clearColor: 0x000000
 	});
 
-	// desktop + quality mid or high
-	if(this.quality > 2)
+
+	if(this.quality > 0 && !this.mobile)
 	{
 		renderer.physicallyBasedShading = true;
 		renderer.gammaInput = true;
@@ -317,7 +303,8 @@ bkcore.hexgl.HexGL.prototype.initHUD = function()
 		font: "BebasNeueRegular",
 		bg: this.track.lib.get("images", "hud.bg"),
 		speed: this.track.lib.get("images", "hud.speed"),
-		shield: this.track.lib.get("images", "hud.shield")
+		shield: this.track.lib.get("images", "hud.shield"),
+		L4N: this.L4N
 	});
 	this.containers.overlay.appendChild(this.hud.canvas);
 }
@@ -359,11 +346,8 @@ bkcore.hexgl.HexGL.prototype.initGameComposer = function()
 	// 	this.composers.game.addPass( effectFXAA );
 
 	// 	this.extras.fxaa = effectFXAA;
-	
 	// }
-	
-	// desktop + quality mid or high
-	if(this.quality > 2)
+	if(this.quality > 1 && !this.mobile)
 	{
 		var effectBloom = new THREE.BloomPass( 0.8, 25, 4 , 256);
 
@@ -372,13 +356,12 @@ bkcore.hexgl.HexGL.prototype.initGameComposer = function()
 		this.extras.bloom = effectBloom;
 	}
 
-	// desktop + quality low, mid or high
-	// OR
-	// mobile + quality mid or high
-	if(this.quality > 0)
+	if(!this.mobile || this.quality > 0)
 		this.composers.game.addPass( effectHex );
 	else
 		this.composers.game.addPass( effectScreen );
+
+
 }
 
 bkcore.hexgl.HexGL.prototype.createMesh = function(parent, geometry, x, y, z, mat)
@@ -389,8 +372,7 @@ bkcore.hexgl.HexGL.prototype.createMesh = function(parent, geometry, x, y, z, ma
 	mesh.position.set( x, y, z );
 	parent.add(mesh);
 
-	// desktop + quality mid or high
-	if(this.quality > 2)
+	if(this.quality > 0 && !this.mobile)
 	{
 		mesh.castShadow = true;
 		mesh.receiveShadow = true;
@@ -428,6 +410,25 @@ bkcore.hexgl.HexGL.prototype.tweakShipControls = function()
 		c.thrust = 0.02;
 		c.airBrake = 0.025;
 		c.maxSpeed = 7.0;
+		c.boosterSpeed = c.maxSpeed * 0.5;
+		c.boosterDecay = 0.007;
+		c.angularSpeed = 0.0125;
+		c.airAngularSpeed = 0.0135;
+		c.rollAngle = 0.6;
+		c.shieldDamage = 0.06;
+		c.collisionSpeedDecrease = 0.8;
+		c.collisionSpeedDecreaseCoef = 0.5;
+		c.rollLerp = 0.07;
+		c.driftLerp = 0.3;
+		c.angularLerp = 0.4;
+	}
+	else if (this.difficulty == 2)
+	{
+		c.airResist = 0.02;
+		c.airDrift = 0.06;
+		c.thrust = 0.02;
+		c.airBrake = 0.025;
+		c.maxSpeed = 4.0;
 		c.boosterSpeed = c.maxSpeed * 0.5;
 		c.boosterDecay = 0.007;
 		c.angularSpeed = 0.0125;
