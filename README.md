@@ -1,7 +1,7 @@
 HexGL
 =========
 
-This is a fork by [Barkhausen Institut](barkhauseninstitut.org), introducing delay and packet error rate into the controller.
+This is a fork by [Barkhausen Institut](https://barkhauseninstitut.org), introducing delay and packet error rate into the controller.
 
 ---
 
